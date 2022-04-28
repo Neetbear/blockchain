@@ -32,8 +32,6 @@ const createGenesisBlock = () => {
     return genesisBlock;
 }
 
-const blocks = [createGenesisBlock()];
-
 const getBlocks = () => {
     return blocks;
 }
@@ -46,10 +44,48 @@ const createBlock = (blockData) => {
 
     const newBlock = new Block(nextIndex, blockData, nextTimestamp, nextHash, previousBlock.hash);
 
-    blocks.push(newBlock);
-
-    return newBlock;
+    if(isValidNewBlock(newBlock, previousBlock)) {
+        blocks.push(newBlock);
+        return newBlock;
+    }
+    
+    console.log('fail to create new block');
+    return null;
 }
+
+// 블록의 무결성 검증
+/**
+    블록의 인덱스가 이전 블록인덱스보다 1 크다.
+    블록의 previousHash가 이전 블록의 hash이다.
+    블록의 구조가 일치해야 한다.
+ */
+const isValidBlockStructure = (newBlock) => {
+    if(typeof(newBlock.index) === 'number' 
+        && typeof(newBlock.data) === 'string'
+        && typeof(newBlock.timestamp) === 'number'
+        && typeof(newBlock.hash) === 'string'
+        && typeof(newBlock.previousHash) == 'string') {
+            return true;
+        }
+
+    return false;
+}
+const isValidNewBlock = (newBlock, previousBlock) => {
+    if(newBlock.index !== previousBlock.index + 1) {
+        console.log('invalid index');
+        return false;
+    } else if(newBlock.previousHash !== previousBlock.hash) {
+        console.log('invalid previousHash');
+        return false;
+    } else if(!isValidBlockStructure(newBlock)) {
+        console.log('invalid block structure')
+        return false;
+    } 
+
+    return true;
+}
+
+const blocks = [createGenesisBlock()];
 
 export { getBlocks, createBlock }
 
