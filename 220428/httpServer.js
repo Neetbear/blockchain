@@ -6,6 +6,7 @@
 import express from 'express'; 
 import bodyParser from 'body-parser';
 import { createBlock, getBlocks } from './block.js';
+import { connectionToPeer, getPeers, sendMessage } from './p2pServer.js';
 
 // 초기화 함수 
 const initHttpServer = (myHttpPort) => {
@@ -20,9 +21,22 @@ const initHttpServer = (myHttpPort) => {
         res.send(getBlocks());
     })
 
-    app.post('/createblock', (req, res) => {
+    app.post('/createBlock', (req, res) => {
         res.send(createBlock(req.body.data));
     })
+
+    app.get('/peers', (req, res) => {
+        res.send(getPeers());
+    })
+
+    app.post('/addPeer', (req, res) => {
+            console.log(req.body.data);
+            res.send(connectionToPeer(req.body.data))
+    })    
+    
+    app.post('/sendMessage', (req, res) => {
+        res.send(sendMessage(req.body.data))
+    })    
 
     app.listen(myHttpPort, () => {
         console.log('listening httpServer Port : ', myHttpPort);
