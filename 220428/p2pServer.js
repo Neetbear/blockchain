@@ -26,16 +26,20 @@ const initP2PServer = (p2pPort) => {
     // WebSocket -> url까지 필요 / WebSocketServer -> port만 있으면 됨
 
     // websocket에서 발생할 수 있는 이벤트들은 이미 정의되어 있어서 사용하면 된다
-    server.on('connection', (ws) => {
-        initConnection(ws); // initConnection 이건 만들어서 사용할 함수
+    server.on('connection', (ws, request) => {
+        const ip = request.headers['x-forwarded-for'] || request.connection.remoteAddress;
+        console.log("req " + request.headers);
+        initConnection(ws, ip); // initConnection 이건 만들어서 사용할 함수
+        initMessgaeHandler(ws, ip);
     }) 
 
     console.log('listening P2PServer Port : ', p2pPort);
 }
 
-const initConnection = (ws) => {
+const initConnection = (ws, ip) => {
+    console.log(ip);
     sockets.push(ws);
-    initMessgaeHandler(ws);
+    initMessgaeHandler(ws, ip);
 }
 
 // 다른 사람의 정보를 가지고 접속하는 환경
@@ -53,8 +57,8 @@ const connectionToPeer = (newPeer) => {
     })
 }
 
-const initMessgaeHandler = (ws) => {
-    ws.on('message', (data) => {
+const initMessgaeHandler = (ws, ip) => {
+    ws.on('message', (data, listener) => {
         const message = JSON.parse(data);
 
         switch(message.type) {
@@ -64,6 +68,8 @@ const initMessgaeHandler = (ws) => {
             case MessageType.SENT_MESSAGE:      
             // 메시지 보낼 때 -> 받는 입장에서는 SEND_MESSAGE type일때 받음
                 // write(ws, message);
+                console.log("*ip* " + ip);
+                console.log("*lis* " + listener);
                 console.log(message.message);
                 break;
         }
