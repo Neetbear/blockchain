@@ -4,6 +4,7 @@
 // import 사용시 필요한 애만 불러옴 => 속도와 크기면에서 우세
 
 import express from 'express'; 
+import nunjucks from 'nunjucks';
 import bodyParser from 'body-parser';
 import { createBlock, getBlocks } from './block.js';
 import { connectionToPeer, getPeers, sendMessage } from './p2pServer.js';
@@ -11,10 +12,18 @@ import { connectionToPeer, getPeers, sendMessage } from './p2pServer.js';
 // 초기화 함수 
 const initHttpServer = (myHttpPort) => {
     const app = express();
+    app.set('view engine', 'html')
+    nunjucks.configure('views', {
+        express:app
+    });
+
+    app.use(express.urlencoded({extended:true}));
+    app.use(express.json());
     app.use(bodyParser.json());
 
     app.get('/', (req, res) => {
-        res.send("Hello, World!");
+        // res.send("Hello, World!");
+        res.render("chat");
     })
 
     app.get('/blocks', (req, res) => {
