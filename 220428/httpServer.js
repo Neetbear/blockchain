@@ -6,9 +6,11 @@
 import express from 'express'; 
 import nunjucks from 'nunjucks';
 import bodyParser from 'body-parser';
+import path from 'path';
 import { createBlock, getBlocks } from './block.js';
 import { connectionToPeer, getPeers, sendMessage } from './p2pServer.js';
 
+const __dirname = path.resolve();
 // 초기화 함수 
 const initHttpServer = (myHttpPort) => {
     const app = express();
@@ -16,10 +18,10 @@ const initHttpServer = (myHttpPort) => {
     nunjucks.configure('views', {
         express:app
     });
-
-    app.use(express.urlencoded({extended:true}));
-    app.use(express.json());
-    app.use(bodyParser.json());
+    app.use(express.static(__dirname+'/public'));
+    // app.use(express.urlencoded({extended:true}));
+    // app.use(express.json());
+    // app.use(bodyParser.json());
 
     app.get('/', (req, res) => {
         // res.send("Hello, World!");
