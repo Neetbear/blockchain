@@ -21,7 +21,7 @@ const initHttpServer = (myHttpPort) => {
     app.use(express.static(__dirname+'/public'));
     // app.use(express.urlencoded({extended:true}));
     // app.use(express.json());
-    // app.use(bodyParser.json());
+    app.use(bodyParser.json());
 
     app.get('/', (req, res) => {
         // res.send("Hello, World!");
@@ -41,8 +41,8 @@ const initHttpServer = (myHttpPort) => {
     })
 
     app.post('/addPeer', (req, res) => {
-            console.log(req.body.data);
-            res.send(connectionToPeer(req.body.data))
+        console.log(req.body.data);
+        res.send(connectionToPeer(req.body.data))
     })    
     
     app.post('/sendMessage', (req, res) => {
