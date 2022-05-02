@@ -86,6 +86,7 @@ const sendMessage = (message) => {
     })
 }
 
+// 상대방 메시지 저장한 배열 받기용
 const getMessage = () => {
     return yourMessage;
     // return yourMessage[yourMessage.length-1];
