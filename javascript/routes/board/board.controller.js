@@ -8,6 +8,7 @@ const list = (req, res)=> {
 }
 
 const view = (req, res)=> {
+    console.log(req.query);
     const {index} = req.query;
     console.log(index);
 

@@ -117,7 +117,9 @@ const replaceBlockchain = (receiveBlockchain) => {
         } else if(receiveBlockchain.length == getBlocks().length && random.boolean()) {
             // random.boolean() 랜덤으로 true or false
             console.log("받은 블록체인의 길이가 같고 교체한다")
-            blocks = receiveBlockchain;
+            for (let i = 0; i < receiveBlockchain.length - 1; i++) {
+                blocks[i] = receiveBlockchain[i];
+            }
         }
     } else {
         console.log("받은 블록체인에 문제가 있음");
