@@ -11,4 +11,5 @@ const p2pPort = parseInt(process.env.P2P_PORT) || 6001;
 
 initHttpServer(httpPort);
 initP2PServer(p2pPort);
+
 // 연결되는 속도가 차이나서 p2p가 더 빠른듯 비동기 식의 이유

@@ -32,9 +32,10 @@ const calculateHash = (index, data, timestamp, previousHash, difficulty, nonce) 
 // 16진수 1자리 -> 2진수 4자리 256개의 0과 1로 표현 
 
 const createGenesisBlock = () => {
-    const genesisBlock = new Block(0, 'The Times 03/Jan/2009 Chancellor on brink of second bailout for banks', new Date().getTime() / 1000, 0, 0, 0, 0);
+    const genesisBlock = new Block(0, 'The Times 03/Jan/2009 Chancellor on brink of second bailout for banks', 0 /* new Date().getTime() / 1000 */, 0, 0, 0, 0);
 
     genesisBlock.hash = calculateHash(genesisBlock.index, genesisBlock.data, genesisBlock.timestamp, genesisBlock.previousHash, genesisBlock.difficulty, genesisBlock.nonce);
+    // genesisBlock.hash = calculateHash(0);
     
     return genesisBlock;
 }
@@ -58,13 +59,15 @@ const createBlock = (blockData) => {
 
     const newBlock = new Block(nextIndex, blockData, nextTimestamp, nextHash, previousBlock.hash, nextDifficulty, nextNonce);
 
+    return newBlock;
+}
+
+const addBlock = (newBlock, previousBlock) => {
     if(isValidNewBlock(newBlock, previousBlock)) {
         blocks.push(newBlock);
-        return newBlock;
-    }
-    
-    console.log('fail to create new block');
-    return null;
+        return true;
+    }  
+    return false;
 }
 
 // 블록의 무결성 검증
@@ -146,9 +149,9 @@ const findNonce = (index, data, timestamp, previousHash, difficulty) => {
     }
 }
 
-const blocks = [createGenesisBlock()];
+let blocks = [createGenesisBlock()];
 
-export { getBlocks, createBlock, getLatestBlock }
+export { getBlocks, createBlock, getLatestBlock, addBlock, isValidNewBlock, blocks }
 
 // sha256
 /* 
