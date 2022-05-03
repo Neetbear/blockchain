@@ -1,0 +1,29 @@
+POST /board/write HTTP 1.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Accept-Encoding: gzip, deflate, br
+Accept-Language: ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7
+Cache-Control: max-age=0
+Connection: keep-alive
+Content-Length: 47
+Content-Type: application/x-www-form-urlencoded
+Host: localhost:3000
+Origin: http://localhost:3000
+Referer: http://localhost:3000/board/write
+sec-ch-ua: " Not A;Brand";v="99", "Chromium";v="100", "Google Chrome";v="100"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36
+
+subject=asfd&content=sadf 
+// get은 위에 붙고 post는 아래 붙음 
+// get이고 post고 데이터는 똑같이 전달함
+// subject/content-> name 값
+
+브라우저 - 요청보내고 응답을 받고
+
+익스프레스(서버?) - 요청을 받구 응답을 보내줘

@@ -4,9 +4,38 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Board/List</title>
+    <style>
+        table{
+            width: 100%;
+        }
+        table > tr {
+            padding: 7px;
+            text-align: center;
+        }
+        table > tr > td {
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
 </head>
 <body>
-    
+    <div>List</div>
+    <table>
+        <tr>
+            <td>번호</td>
+            <td>제목</td>
+            <td>작성자</td>
+            <td>작성일</td>
+            <td>등록일</td>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td><a href="/board/view">제목</a></td>
+            <td>1</td>
+            <td>1</td>
+            <td>1</td>
+        </tr>
+    </table>
+    <a href="/board/write">글쓰기</a>
 </body>
 </html>
