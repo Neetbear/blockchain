@@ -2,10 +2,10 @@
 // 다른 노드와 통신을 위한 서버
 // web socket 사용
 
-import random from 'random';
+// import random from 'random';
 import WebSocket from 'ws';
 import { WebSocketServer } from 'ws';
-import { getBlocks, getLatestBlock, addBlock, createBlock, isValidNewBlock, blocks } from './block.js';
+import { getBlocks, getLatestBlock, addBlock, createBlock, replaceBlockchain } from './block.js';
 
 const MessageType = {
     // RESPONSE_MESSAGE : 0,
@@ -15,7 +15,7 @@ const MessageType = {
     QUERY_LATEST : 0,
     // 모든 블록 요청
     QUERY_ALL : 1,
-    // 블록 전달
+    // 블록 전달 // response 반응도 latest와 all 분해 필요
     RESPONSE_BLOCKCHAIN : 2,
 }
 
@@ -72,67 +72,46 @@ const initMessgaeHandler = (ws) => {
             case MessageType.RESPONSE_BLOCKCHAIN:    
                 // 요청한 블록들 받을때
                 console.log(ws._socket.remoteAddress, ' : ', message.data);
-                // handleBlockchainResponse(message.data);
-                replaceBlockchain(message.data);
+                handleBlockchainResponse(message.data);
+                // replaceBlockchain(message.data);
                 break;
         }
     })
 }
 
-// 올바른 블록 데이터를 받았나 판별
-const isValidBlockchain = (receiveBlockchain) => {
-    // 같은 제네시스 블록인가? 
-    console.log("test1 ", receiveBlockchain[0]);
-    console.log("test2 ", getBlocks()[0]);
-    console.log("test3 ", JSON.stringify(receiveBlockchain[0]) ==  JSON.stringify(getBlocks()[0]));
-
-    if(JSON.stringify(receiveBlockchain[0]) !==  JSON.stringify(getBlocks()[0])) {
-        console.log("제네시스 블록이 다름");
-        return false
-    };
-
-    // 체인 내의 모든 블록을 확인
-    for(let i = 1; i < receiveBlockchain.length; i++) {
-        console.log(receiveBlockchain);
-        if(!isValidNewBlock(receiveBlockchain[i], receiveBlockchain[i-1])) {
-            console.log("체인 내의 블록 체크 중에 오류");
-            return false
-        };
-    }
-
-    return true;
-}
-
-// 블록 교체 함수
-const replaceBlockchain = (receiveBlockchain) => {
+const handleBlockchainResponse = (receiveBlockchain) => {
     receiveBlockchain = JSON.parse(receiveBlockchain);
-    if(isValidBlockchain(receiveBlockchain)) {
-        // let blocks = getBlocks();
-        if(receiveBlockchain.length > getBlocks().length) {
-            console.log("받은 블록체인의 길이가 길다")
-            for (let i = 0; i < receiveBlockchain.length - 1; i++) {
-                blocks[i] = receiveBlockchain[i];
-            }
-            // blocks = JSON.parse(receiveBlockchain);
-        } else if(receiveBlockchain.length == getBlocks().length && random.boolean()) {
-            // random.boolean() 랜덤으로 true or false
-            console.log("받은 블록체인의 길이가 같고 교체한다")
-            for (let i = 0; i < receiveBlockchain.length - 1; i++) {
-                blocks[i] = receiveBlockchain[i];
+    // 받아온 블록의 마지막 인덱스가 내 마지막 블록의 인데스보다 크다.
+    const latestNewBlock = receiveBlockchain[receiveBlockchain.length - 1];
+    const latestMyBlock = getLatestBlock();
+    console.log("상대꺼 ", latestNewBlock);
+    console.log("내꺼 ",latestMyBlock);
+
+    if(latestNewBlock.index > latestMyBlock.index) {
+        // 받아온 마지막 블록의 previousHash와 내 마지막 블록의 hash를 확인한다
+        if(latestNewBlock.previousHash === latestMyBlock.hash) {
+            if(addBlock(latestNewBlock, latestMyBlock)) {
+                // 제한된 플러딩 flooding 
+                // 플러딩은 정적 알고리즘으로, 어떤 노드에서 온 하나의 패킷을 라우터에 접속되어 있는 다른 모든 노드로 전달하는 것
+                console.log("누군가 채굴했나보네?");
+                broadcasting(responseLatestMessage());
             }
         }
+        // 받아온 블록의 전체 크기가 1인 경우 -> 재요청
+        else if (receiveBlockchain.length === 1) {
+            // 최신 블록은 맞는거 같은데 내 index랑 차이가 많이 나서 전체 원장을 요청
+            console.log("전체 원장 좀 줘볼래?");
+            broadcasting(queryAllMessage());
+        }
+
+        // 그 외의 경우
+        // 받은 블록체인보다 현재 블록체인이 더 길면 -> 안 바꿈
+        // 같으면 -> 바꾸거나 안 바꿈 (랜덤성(의외성)에 의의를 둔다, 상태 케어 용)
+        // 받은 블록체인이 현재 블록체인보다 더 길면 -> 바꾼다
+        replaceBlockchain(receiveBlockchain);
     } else {
-        console.log("받은 블록체인에 문제가 있음");
+        console.log("내 원장 최신화 끝!!!")
     }
-}
-
-const handleBlockchainResponse = (receiveBlockchain) => {
-    // 받은 블록체인보다 현재 블록체인이 더 길면 -> 안 바꿈
-
-    // 같으면 -> 바꾸거나 안 바꿈 (랜덤성(의외성)에 의의를 둔다, 상태 케어 용)
-    
-    // 받은 블록체인이 현재 블록체인보다 더 길면 -> 바꾼다
-
 }
 
 const queryLatestMessage = () => { 
@@ -155,7 +134,8 @@ const responseLatestMessage = () => {
     // 최신 블록 요청에 대한 응답
     return ({ 
         "type" : MessageType.RESPONSE_BLOCKCHAIN,
-        "data" : JSON.stringify(getLatestBlock())
+        "data" : JSON.stringify([getLatestBlock()]) 
+        // getBlocks 날릴땐 배열 형태라 형태 통일화를 위해서 최신 블록도 배열 형태로 보냄
     })
 }
 
@@ -164,6 +144,7 @@ const responseAllMessage = () => {
     return ({ 
         "type" : MessageType.RESPONSE_BLOCKCHAIN,
         "data" : JSON.stringify(getBlocks())
+        // 문자열로 보내는게 패킷(packet) 단위로 좋다 (일반적인 방법, 스트링파이가 일반적인 방법)
     })
 }
 
