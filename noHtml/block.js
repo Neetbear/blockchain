@@ -201,20 +201,38 @@ const replaceBlockchain = (receiveBlockchain) => {
     }
 }
 
+const difficultyChangeLog = [];
+class Log {
+    constructor(idx, expect, elapsed, how, result) {
+        this.idx = idx;
+        this.expect = expect; 
+        this.elapsed = elapsed;
+        this.how = how;
+        this.result = result;           
+    }
+}
+
 const getAdjustmentDifficulty = () => {
     // 현재 만들 블록의 시간(timestamp?), 마지막으로 난이도 조정된 시간
-    const prevAdjustedBlock = blocks[blocks.length - 1 - DIFFICULTY_ADJUSTMENT_INTERVAL];
+    const prevAdjustedBlock = blocks[blocks.length - DIFFICULTY_ADJUSTMENT_INTERVAL];
     const latestBlock = getLatestBlock();
     const elapsedTime = latestBlock.timestamp - prevAdjustedBlock.timestamp;
     const expectedTime = DIFFICULTY_ADJUSTMENT_INTERVAL * BLOCK_GENERATOIN_INTERVAL;
+    let idx = prevAdjustedBlock.index;
 
-    if(elapsedTime > expectedTime * 2) {
+    if(elapsedTime > (expectedTime * 2)) {
+        const newLog = new Log(idx, expectedTime, elapsedTime, "낮추기", prevAdjustedBlock.difficulty - 1)
+        difficultyChangeLog.push(newLog)
         // 난이도를 낮춘다
         return prevAdjustedBlock.difficulty - 1;
-    } else if(elapsedTime < expectedTime / 2) {
+    } else if(elapsedTime < (expectedTime / 2)) {
+        const newLog = new Log(idx,expectedTime, elapsedTime, "높이기", prevAdjustedBlock.difficulty + 1)
+        difficultyChangeLog.push(newLog)
         // 난이도를 높인다
         return prevAdjustedBlock.difficulty + 1;
     } else {
+        const newLog = new Log(idx, expectedTime, elapsedTime, "고정", prevAdjustedBlock.difficulty)
+        difficultyChangeLog.push(newLog)
         // 예상 범주, 난이도 고정
         return prevAdjustedBlock.difficulty;
     }
@@ -232,9 +250,13 @@ const getDifficulty = () => {
     return latestBlock.difficulty;
 }
 
+const getDifficultyLog = () => {
+    return difficultyChangeLog;
+}
+
 let blocks = [createGenesisBlock()];
 
-export { getBlocks, createBlock, getLatestBlock, addBlock, replaceBlockchain /*, blocks */ }
+export { getBlocks, createBlock, getLatestBlock, addBlock, replaceBlockchain /*, blocks */ , getDifficultyLog }
 
 // sha256
 /* 

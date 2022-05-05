@@ -168,4 +168,18 @@ const mineBlock = (blockData) => {
     }
 }
 
-export { initP2PServer, connectionToPeer, getPeers, mineBlock, broadcasting }
+let autoMining;
+
+const autoMineBlock = (blockData) => {
+    autoMining = 0
+    while(autoMining < 300) {
+        mineBlock(blockData);
+        autoMining++;
+    }
+}
+
+const endMining = () => {
+    return autoMining = false;
+}
+
+export { initP2PServer, connectionToPeer, getPeers, mineBlock, broadcasting, autoMineBlock, endMining }

@@ -5,8 +5,8 @@
 
 import express from 'express'; 
 import bodyParser from 'body-parser';
-import { createBlock, getBlocks } from './block.js';
-import { connectionToPeer, getPeers, mineBlock } from './p2pServer.js';
+import { createBlock, getBlocks, getDifficultyLog } from './block.js';
+import { connectionToPeer, getPeers, mineBlock, autoMineBlock, endMining } from './p2pServer.js';
 
 // 초기화 함수 
 const initHttpServer = (myHttpPort) => {
@@ -27,6 +27,14 @@ const initHttpServer = (myHttpPort) => {
 
     app.post('/mineBlock', (req, res) => {
         res.send(mineBlock(req.body.data));
+    })
+
+    app.post('/autoMineBlock', (req, res) => {
+        res.send(autoMineBlock(req.body.data));
+    })
+
+    app.get('/log', (req, res) => {
+        res.send(getDifficultyLog());
     })
 
     app.get('/peers', (req, res) => {
