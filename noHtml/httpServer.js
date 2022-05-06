@@ -7,6 +7,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { createBlock, getBlocks, getDifficultyLog } from './block.js';
 import { connectionToPeer, getPeers, mineBlock, autoMineBlock, endMining } from './p2pServer.js';
+import { getPublicKeyFromWallet } from './wallet.js';
 
 // 초기화 함수 
 const initHttpServer = (myHttpPort) => {
@@ -30,7 +31,7 @@ const initHttpServer = (myHttpPort) => {
     })
 
     app.post('/autoMineBlock', (req, res) => {
-        res.send(autoMineBlock(req.body.data));
+        res.send(autoMineBlock(req.body.data, req.body.count));
     })
 
     app.get('/log', (req, res) => {
@@ -45,6 +46,11 @@ const initHttpServer = (myHttpPort) => {
         console.log(req.body.data);
         res.send(connectionToPeer(req.body.data))
     })    
+
+    app.get('/address', (req, res) => {
+        const address = getPublicKeyFromWallet();
+        res.send({'address' : address});
+    })
     
     app.listen(myHttpPort, () => {
         console.log('listening httpServer Port : ', myHttpPort);

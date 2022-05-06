@@ -170,9 +170,9 @@ const mineBlock = (blockData) => {
 
 let autoMining;
 
-const autoMineBlock = (blockData) => {
+const autoMineBlock = (blockData, count) => {
     autoMining = 0
-    while(autoMining < 300) {
+    while(autoMining < count) {
         mineBlock(blockData);
         autoMining++;
     }
