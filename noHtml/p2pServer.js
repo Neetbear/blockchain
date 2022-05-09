@@ -6,6 +6,7 @@
 import WebSocket from 'ws';
 import { WebSocketServer } from 'ws';
 import { getBlocks, getLatestBlock, addBlock, createBlock, replaceBlockchain } from './block.js';
+import { getTransationPool, addToTransactionPool } from './transaction.js';
 
 const MessageType = {
     // RESPONSE_MESSAGE : 0,
@@ -17,6 +18,10 @@ const MessageType = {
     QUERY_ALL : 1,
     // 블록 전달 // response 반응도 latest와 all 분해 필요
     RESPONSE_BLOCKCHAIN : 2,
+
+    // transaction 용
+    QUERY_TRANSACTION_POOL : 3,
+    RESPONSE_TRANSACTION_POOL : 4
 }
 
 const sockets = []; 
@@ -75,6 +80,12 @@ const initMessgaeHandler = (ws) => {
                 handleBlockchainResponse(message.data);
                 // replaceBlockchain(message.data);
                 break;
+            case MessageType.QUERY_TRANSACTION_POOL:
+                write(ws, responseTransactionPoolMessage());
+                break;
+            case MessageType.RESPONSE_TRANSACTION_POOL:
+                handleTransactionPoolResponse(message.data);
+                break;
         }
     })
 }
@@ -114,6 +125,19 @@ const handleBlockchainResponse = (receiveBlockchain) => {
     }
 }
 
+const handleTransactionPoolResponse = (recieveTransacionPool) => {
+    console.log('recieveTransacionPool : ', recieveTransacionPool)
+
+    recieveTransacionPool.forEach((transaction) => {
+        // 중복 검사
+        // 트랜잭션 풀에 추가 
+        addToTransactionPool(transaction);
+
+        // 다시 전파 
+        
+    })
+}
+
 const queryLatestMessage = () => { 
     // 다른 노드에 최신 블록 요청 메시지 보내기
     return ({ 
@@ -145,6 +169,13 @@ const responseAllMessage = () => {
         "type" : MessageType.RESPONSE_BLOCKCHAIN,
         "data" : JSON.stringify(getBlocks())
         // 문자열로 보내는게 패킷(packet) 단위로 좋다 (일반적인 방법, 스트링파이가 일반적인 방법)
+    })
+}
+
+const responseTransactionPoolMessage = () => {
+    return ({ 
+        "type" : MessageType.RESPONSE_TRANSACTION_POOL,
+        "data" : JSON.stringify(getTransationPool())    
     })
 }
 

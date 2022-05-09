@@ -47,6 +47,13 @@ const initHttpServer = (myHttpPort) => {
         const address = getPublicKeyFromWallet();
         res.send({'address' : address});
     })
+
+    app.post('/sendTransaction', (req, res) => {
+        // txout에 필요한 data들 사용해서 sendTransaction
+        const address = req.body.address;
+        const amount = req.body.amount;
+        res.send(sendTransaction(address, amount));
+    })
     
     app.listen(myHttpPort, () => {
         console.log('listening httpServer Port : ', myHttpPort);
