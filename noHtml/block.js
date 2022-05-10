@@ -10,6 +10,8 @@
 
 import CryptoJS from 'crypto-js';
 import random from 'random';
+import { getCoinbaseTransaction, getTransationPool, updateTransactionPool } from "./transaction.js";
+import { getPublicKeyFromWallet } from "./wallet.js";
 
 
 const BLOCK_GENERATOIN_INTERVAL = 10;       // 블록 생성 주기 // 블록 생성 시간(second)
@@ -68,19 +70,33 @@ const createBlock = (blockData) => {
     return newBlock;
 }
 
+const createNextBlock = () => {
+    // 1. 코인베이스 트랜잭션 생성
+    const coinbaseTx = getCoinbaseTransaction(getPublicKeyFromWallet(), getLatestBlock().index + 1);
+
+    // 2. 생성된 코인베이스 트랜잭션 뒤에 현재 보유 중인 트랜잭션 풀의 내용을 포함 (마이닝 된 블록의 데이터)
+    const blockData = [coinbaseTx].concat(getTransationPool);
+    return createBlock(blockData);
+}
+
 const addBlock = (newBlock, previousBlock) => {
     if(isValidNewBlock(newBlock, previousBlock)) {
         blocks.push(newBlock);
+
+        // 사용되지 않은 txOuts 셋팅
+        // 트랜잭션 풀 업데이트
+        updateTransactionPool(UnspentTxOuts);
+        
         return true;
     }  
     return false;
 }
 
-// 블록의 무결성 검증
 /**
-    블록의 인덱스가 이전 블록인덱스보다 1 크다.
-    블록의 previousHash가 이전 블록의 hash이다.
-    블록의 구조가 일치해야 한다.
+ *  블록의 무결성 검증
+ *  블록의 인덱스가 이전 블록인덱스보다 1 크다.
+ *  블록의 previousHash가 이전 블록의 hash이다.
+ *  블록의 구조가 일치해야 한다.
  */
 const isValidBlockStructure = (newBlock) => {
     if(typeof(newBlock.index) === 'number' 
@@ -186,13 +202,13 @@ const replaceBlockchain = (receiveBlockchain) => {
     // JSON.parse시 null 주의 (null exception이 발생해서 추가 처리 필요)
     if(isValidBlockchain(receiveBlockchain)) {
         // let blocks = getBlocks();
-        if(receiveBlockchain.length > getBlocks().length) {
-            console.log("받은 블록체인의 길이가 길다")
+        if((receiveBlockchain.length > getBlocks().length || (receiveBlockchain.length == getBlocks().length && random.boolean()))) {
+            console.log("받은 블록체인의 길이가 길거나 같아서 교체한다")
             blocks = receiveBlockchain; // type error 걸림 export 받아온거라 const 취급인듯
-        } else if(receiveBlockchain.length == getBlocks().length && random.boolean()) {
-            // random.boolean() 랜덤으로 true or false
-            console.log("받은 블록체인의 길이가 같고 교체한다")
-            blocks = receiveBlockchain;
+
+            // 사용되지 않은 txOuts 셋팅
+            // 트랜잭션 풀 업데이트
+            updateTransactionPool(UnspentTxOuts);
         } else {
             console.log("받은 블록체인의 길이가 짧다")
         }
