@@ -1,5 +1,5 @@
 import CryptoJs from "crypto-js";
-import _, { filter } from 'lodash';
+import _ from 'lodash';
 import { getPublicKeyFromWallet, getPrivateKeyFromWallet } from './wallet.js';
 
 // 블록당 코인
