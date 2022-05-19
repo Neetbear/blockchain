@@ -1,26 +1,19 @@
-import CryptoJs from "crypto-js";
-import _ from 'lodash';
-import { getPublicKeyFromWallet, getPrivateKeyFromWallet } from './wallet.js';
+import CryptoJS from 'crypto-js'
+import _ from 'lodash'              // 배열기능이 있고 깊은 복사의 유용한 기능들이 있는 라이브러리
+import { getPublicKeyFromWallet, getPrivateKeyFromWallt } from './wallet.js'
 
-// 블록당 코인
-const COIN_BASE_AMOUNT = 50;
+const COINBASE_AMOUNT = 50;
 
 let transactionPool = [];
-const getTransationPool = () => {
-    /*
-        깊은 복사(Deep Copy)는 '실제 값'을 새로운 메모리 공간에 복사하는 것을 의미
-        얕은 복사(Shallow Copy)는 '주소 값'을 복사한다는 의미
-        얕은 복사의 경우 주소 값을 복사하기 때문에, 참조하고 있는 실제값은 같다
-        현재와 같은 코드를 짜면 얕은 복사만 된다.
-
-        깊은 복사 같은 문법은 let trans = [...transactionPool]; -> 내부의 다른 객체들은 얕은 복사됨
-
-        lodash가 깊은 복사 관련 지원 라이브러리라 사용
-    */
-    return _.cloneDeep(transactionPool);
+const getTransactionPool = () => {    
+    return _.cloneDeep(transactionPool);    
 }
 
-let UnspentTxOuts = []; // UnspentTxOut []
+// let unspentTxOuts = []; // UnspentTxOut []
+let unspentTxOuts = processTransaction(transactions /* Transaction[] */, [] /* UnspentTxOut[] */, 0 /* blockIndex */);
+const getUnspentTxOuts = () => {
+    return _.cloneDeep(unspentTxOuts);
+}
 
 class UnspentTxOut {
     constructor(txOutId, txOutIndex, address, amount) {
@@ -31,16 +24,20 @@ class UnspentTxOut {
     }
 }
 
-// 코인을 어디로 얼만큼 보냈는가 
-class TxOut {
-    constructor(address, amount) {
-        this.address = address;         // string
-        this.amount = amount;           // number
+
+// let trans = [...transactionPool] 깊은 복사가 되지만 1단계까지만 됨
+// 얕은 복사만 일어나게 된다 ( 구조체 안에 다른 클래스의 배열들안에 다른 데이터들 처럼 중첩되었기 때문 )
+
+// 코인을 어디로 얼만큼 보냈는가
+class TxOut {                           
+    constructor(address, amount ) {
+        this.address = address;           // string
+        this.amount = amount;             // number        
     }
 }
 
-// 보내진 코인을 실제로 소유했다에 대한 증거 (영지식증명용 증거 들)
-class TxIn {    // txOut으로 txIn을 해석하므로 구성이 이렇다
+// 보내진 코인이 실제로 소유했다에 대한 증거
+class TxIn {
     constructor(txOutId, txOutIndex, sign) {
         this.txOutId = txOutId;         // string
         this.txOutIndex = txOutIndex;   // number
@@ -48,266 +45,297 @@ class TxIn {    // txOut으로 txIn을 해석하므로 구성이 이렇다
     }
 }
 
+// 구조체 안에 스트링이 있고 다른 클래스 배열들(안에 다른데이터) 로 구성 
 class Transaction {
     constructor(id, txIns, txOuts) {
         this.id = id;                   // string
-        this.txIns = txIns;             // TxIn[]
-        this.txOuts = txOuts;           // TxOut[]
+        this.txIns = txIns;             // TxIn []
+        this.txOuts = txOuts;           // TxOut []
     }
 }
 
 // transaction id
-const getTransactionId = (transaction) => {
-    // txIns에 있는 내용들을 하나의 문자열로 변환
-    const txInsContent = transaction.txIns.map((txIn) => {
-        // map 배열의 각 요소들을 건드릴때 사용
-        (txIn.txOutId + txIn.txOutIndex).reduce((a, b) => {     
-            // reduce 배열의 각 요소들을 하나의 결과값으로 만들때 사용
-            a + b, ''
+const getTransactionId = (transaction) => {     
+    // txIns 에 있는 내용들을 하나의 문자열로 만든다.
+    const txInsContent = transaction.txIns
+        .map((txIn) => txIn.txOutId + txIn.txOutIndex)
+        .reduce((a, b) => a + b, '');
+        /* 아래가 조금 복잡
+        const txInsContent = transaction.txIns.map((txIn) => {
+            (txIn.txOutId + txIn.txOutIndex).reduce((a, b) => {
+                a + b, ''
         })
-    })
-    // txOuts에 있는 내용들을 하나의 문자열로 변환
-    const txOutsContent = transaction.txOuts.map((txOut) => {
-        (txOut.address + txOut.amount).reduce((a, b) => {     
-            a + b, ''
-        })
-    })
-    // 위의 두 내용을 다 합해서 hash 처리
-    return CryptoJs.SHA256(txInsContent + txOutsContent).toString();
-}
+        */
 
-// transaction signature
+    // txOuts 에 있는 내용들을 하나의 문자열로 만든다.
+    const txOutsContent = transaction.txOuts
+    .map((txOut) => txOut.address + txOut.amount)
+    .reduce((a, b) => a + b, '');
+
+    // 위 두 내용을 다 합해서 hash 처리한다.
+    return CryptoJS.SHA256(txInsContent + txOutsContent).toString()
+} 
+// 이 내용이 변조되지않았다
+
+// transaction signature 
 const signTxIn = (transaction, txInIndex, privateKey) => {
-    const txIn = transaction.txIns[txInIndex];
+    // const txIn = transaction.txIns[txInIndex];
 
-    // TODO : 구현 확인 
+    // TODO : sign 코드 검증
     const signature = toHexString(privateKey, transaction.id).toDER();
-    // toDER 인코딩 방식 중에 하나 
     return signature;
 }
+// 누가 보냈는지
 
-// coinbase transaction 
+// coinbase Transaction 
 const getCoinbaseTransaction = (address, blockIndex) => {
     const tr = new Transaction();
+
     const txIn = new TxIn();
     txIn.sign = '';
     txIn.txOutId = '';
     txIn.txOutIndex = blockIndex;
-
-    tr.txIns = [txIn];
-
+        
     const txOut = new TxOut();
     txOut.address = address;
-    txOut.amount = COIN_BASE_AMOUNT;
-
+    txOut.amount = COINBASE_AMOUNT;
+    
+    tr.txIns = [txIn];
     tr.txOuts = [txOut];
-
     tr.id = getTransactionId(tr);
 
     return tr;
 }
 
 const sendTransaction = (address, amount) => {
-    /*   
-        트랜잭션이 처리되는 순간은 블록에 담길때 
-        거래 자체는 많이 생길수 있는데 이 트랜잭션은 블록에 담겨야 의미가 있다 -> 수수료에 의해서 결정
-        수수료가 높은 트랜잭션부터 블록에 담겨진다 
-        지금은 수수료 개념없이 할 것
-        트랜잭션 풀의 용도 -> 모든 트랜잭션을 담아두고 블록생성때 처리하게 보관용?
-    */
-    // 1. 트랜잭션 생성 
-    const tx = createTransaction(address, amount);
+    // 1. 트랜잭션 생성
+    const tx = createTransaction();
 
-    // 2. 트랜잭션 풀에 추가 
-    transactionPool.push(tx); // 원래는 검증 필요
+    // 2. 트랜잭션 풀에 추가
+    transactionPool.push(tx);
 
-    // 3. 주변 노드에 전파 
+    // 3. 주변 노드에 전파
 
     return tx;
 }
 
-const createTransaction = (address, amount) => {
-    /*
-        1. 아직 처리되지 않았지만 트랜잭션 풀에 올라가 있는 내용을 확인
-        2. 거래에 사용되지 않은 TxOuts를 구성, 트랜잭션에 필요한 코인을 확인 (balance) 
-            -> 넘기는 금액은 다시 나한테 전달
-            내가 보유한 TxOuts 10, 15, 20, 40 
-            내가 지금 만들고 싶은 트랜잭션 코인 100 -> 총 코인이 85라 실패
-            60일 경우 -> 잘짜면 20, 40 짜리 2개면 60이니까 2개로 처리 
-            아닐경우 앞에서부터 85로 처리 -> 그 후 25는 다시 나에게 보내기 -> 이렇게 한다는 뜻
-        3. 서명 전에 TxIns로 구성 
-        4. 트랜잭션 구성
-    */
-    // 1
+const createTransaction = (amount, address) => {
+    // 1. 아직 처리되지 않았지만 트랜잭션 풀에 올라가 있는 내용을 확인 
     const myAddress = getPublicKeyFromWallet();
-    const myUnspentTxOuts = UnspentTxOuts.filter((uTxO) => { uTxO.address === myAddress });
-    // TODO : 확인해보기 UnspentTxOuts.filter(uTxO => uTxO.address === myAddress );
-    
-    const filteredUnspentTxouts = filterTxPoolTxs(myUnspentTxOuts);
+    const myUnspentTxOuts = unspentTxOuts.filter((uTxO) => uTxO.address === myAddress); // 내가 가지고 있는 코인들 중에서 이미 내 주소로 되있는 코인들을 골라낸다
+    // TODO : unspentTxOut.filter(uTxO => uTxO.address === myAddress); // ArrowFunction 형태 확인
+    const filterUnspentTxOuts = filterTxPoolTxs(myUnspentTxOuts);
 
-    // 2
-    const {includeTxOuts, leftoverAmout} = findTxOutsForAmount(amount, filteredUnspentTxouts); 
+    // 2. 거래에 사용되지 않은 TxOuts을 구성, 트랜잭션에 필요한 코인을 확인
+    // 내가 보유한 TxOuts 10, 15, 20, 40 
+    // 내가 지금 만들고 있는 트랜잭션 코인 100(위의 합보다 커서 실패), 60(위의 20,40을 써서 생성, 또는 10, 15, 20, 40을 원하는 금액이 될때까지 구성에 쓰임 60 ==== 85 남은 25는 나에게 전송)
+    // 넘기는 금액은 다시 나에게 전달
+    const { includeTxOuts, leftoverAmount } = findTxOutsForAmount(amount, filterUnspentTxOuts);
 
-    // 3
-    const unsignedtxIns = includeTxOuts.map(createUnsignedTxIn);
-    
-    // 4
+    // 3. (2에서 보낼친구들을 선별해서) 서명 전의 TxIns로 구성
+    const unsignedTxIns = includeTxOuts.map(createUnsignedTxIn);
+
+    // 4. 트랜잭션 구성
     const tx = new Transaction();
-    tx.txIns = unsignedtxIns;
-    tx.txOuts = createTxOuts(address, amount, leftoverAmout); // 받는 사람 주소
+    tx.txIns = unsignedTxIns;
+    tx.txOuts = createTxOuts(address, amount, leftoverAmount)
     tx.id = getTransactionId(tx);
 
-    // 서명 해줘야 함 
     tx.txIns = tx.txIns.map((txIn) => {
-        txIn.sign = signTxIn(tx, txIn.txOutIndex, getPrivateKeyFromWallet())
+        txIn.sign = signTxIn(tx, txIn.txOutIndex, getPrivateKeyFromWallt());
         return txIn;
-    }); 
+    });
 
     return tx;
 }
 
 const filterTxPoolTxs = (myUnspentTxOuts) => {
-    // 트랜잭션 풀에서 트랜잭션 인풋 내용만 추출 -> 아웃풋과 매칭 시켜보게 
-    // 내가 서명한 것과 남이 서명한거 구분하겠다
-    const txIns = _(transactionPool).map((tx) => {tx.txIns}).flatten().value();
-    // _.map(transactionPool, 'txIns') 이건 뭘까?
+    // 트랜잭션 풀에서 트랜잭션 인풋 내용만 추출 // 내가 올린것과 남이 올린것을 구분지어줄거야
+    const txIns = _(transactionPool)
+            .map((tx) => tx.txIns) // transactionPool 안에서 txIns들만  하나씩 가져와서 새로운 배열을 구성한다
+            .flatten() // 일차원 배열로 만들어준다
+            .value();
 
-    console.log('트랜잭션 풀 : ', transactionPool);
+    console.log('트랜잭션 풀 : ', transactionPool);       
     console.log('트랜잭션 풀안의 Inputs : ', txIns);
 
     const removable = [];
-    for(const UnspentTxOut of myUnspentTxOuts) {
+    for (const unspentTxOuts of myUnspentTxOuts) {
         const findTxIn = _.find(txIns, (txIn) => {
-            return txIn.txOutIndex === UnspentTxOut.txOutIndex && txIn.txOutId === UnspentTxOut.txOutId;
-            // 함수형 프로그래밍 익숙해져 보자 
+            return txIn.txOutIndex === unspentTxOuts.txOutIndex && 
+                txIn.txOutId === unspentTxOuts.txOutId;
         })
 
-        if(findTxIn === undefined) {
-            console.log('어라? indTxIn가 undefined인데?')
-        } else {
-            removable.push(UnspentTxOut);
+        if (findTxIn === undefined) {
+
+        }
+        else {
+            removable.push(unspentTxOuts);
         }
     }
 
-    return _.without(myUnspentTxOuts, ...removable);
+    _.without(myUnspentTxOuts, ...removable);
 }
 
-const findTxOutsForAmount = (amount, filteredUnspentTxouts) => {
-    let currentAmout = 0;
+const findTxOutsForAmount = (amount, filterUnspentTxOuts) => {
+    let currentAmount = 0;
     const includeTxOuts = [];
 
-    for(const filteredUnspentTxout of filteredUnspentTxout) {
-        includeTxOuts.push(filteredUnspentTxout);
-        currentAmout += filteredUnspentTxout.amount;
-        if(currentAmout >= amount) {
-            const leftoverAmout = currentAmout - amount; // 나한테 보낼 남은 금액
-            return {includeTxOuts, leftoverAmout};
+    for (const unspentTxOuts of filterUnspentTxOuts) {
+        includeTxOuts.push(unspentTxOuts);
+
+        currentAmount = currentAmount + unspentTxOuts.amount;
+        if (currentAmount >= amount) {
+            const leftoverAmount = currentAmount - amount;
+            return { includeTxOuts,  leftoverAmount };
         }
     }
 
-    throw Error('보내려는 금액보다 보유 금액이 적다!!!');
+    throw Error('보내려는 금액보다 보유 금액이 적다!!');
 }
 
-const createUnsignedTxIn = (UnspentTxOut) => {
+const createUnsignedTxIn = (unspentTxOuts) => {
     const txIn = new TxIn();
-    txIn.txOutId = UnspentTxOut.txOutId;
-    txIn.txOutIndex = UnspentTxOut.txOutIndex;
+    txIn.txOutId = unspentTxOuts.txOutId;
+    txIn.txOutIndex = unspentTxOuts.txOutIndex;
 
     return txIn;
 }
 
-const createTxOuts = (address, amount, leftoverAmout) => {
+const createTxOuts = (address, amount, leftoverAmount) => {
     const txOut = new TxOut(address, amount);
-    if (leftoverAmout > 0) {
-        const leftOverTxOut = new TxOut(getPublicKeyFromWallet(), leftoverAmout); 
-        return [leftOverTxOut, txOut];
-    } else {
+    if (leftoverAmount > 0) {
+        const leftoverTxOut = new TxOut(getPublicKeyFromWallet(), leftoverAmount);
+        return [leftoverTxOut, txOut];
+    }
+    else {
         return [txOut];
     }
 }
 
-// 올바른 트랜잭션인지 
 const addToTransactionPool = (transaction) => {
-    if (!isValidateTransaction(transaction, UnspentTxOuts)) {
-        throw Error('추가하려는 트랜잭션이 올바르지 않다!! : ', transaction)
+    // 올바른 트랜잭션인지
+    if (!isValidateTransaction(transaction, unspentTxOuts)) {
+        throw Error('추가하려는 트랜잭션이 올바르지 않습니다. : ', transaction);
     }
-    // 중복되는지
-    if(!isValidateTxForPool(transaction)) {
-        throw Error('추가하려는 트랜잭션이 이미 풀에 있습니다!! : ', transaction)
+
+    // 중복되는지 
+    if (!isValidateTxForPool(transaction)) {
+        throw Error('추가하려는 트랜잭션이 트랜잭션 풀에 있습니다. : ', transaction);
     }
 
     transactionPool.push(transaction);
 }
 
-const isValidateTransaction = (transaction, UnspentTxOuts) => {
-    if(getTransactionId(transaction) === transaction.id) {
+const isValidateTransaction = (transaction, unspentTxOuts) => {
+    // 트랜잭션 아이디가 올바르게 구성되어있는지
+    if (getTransactionId(transaction) !== transaction.id) {
         console.log('invalid transaction id : ', transaction.id);
         return false;
     }
 
-    const totalTxInValues = transaction.txIns.map((txIn) => getTxInAmount(txIn, UnspentTxOuts)).reduce((a, b) => (a + b), 0);
+    const totalTxInValues = transaction.txIns
+        .map((txIn) => getTxInAmount(txIn, unspentTxOuts))
+        .reduce((a, b) => (a + b), 0); // 데이터값에 따라 스트링은 이어붙여주고 숫자int 는 합해준다. 객체지향 프로그램에선 오버로딩!! 이름은 같은데 매개변수의 타입에 따라 다른함수 기능을 하는것을 오버로딩이라고 한다. 나온값들을 합해서 하나의 값으로 짧은 에로우 펑션은 {} 생략 가능
 
-    const totalTxOutValues = transaction.txOuts.map((txOut) => txOut.amount).reduce((a, b) => (a + b), 0);
+        const totalTxOutValues = transaction.txOuts
+            .map((txOut) => txOut.amount)
+            .reduce((a, b) => (a + b), 0);
 
-    if(totalTxInValues !== totalTxOutValues) {
-        console.log('totalTxInValues !== totalTxOutValues : ', transaction.id);
-        return false;
-    }
+        if ( totalTxInValues !== totalTxOutValues) {
+            console.log( 'totalTxInValues !== totalTxOutValues id : ', transaction.id );
+            return false;
+        }
 
-    return true;
+        return true;
 }
 
-const getTxInAmount = (txIn, UnspentTxOuts) => {
-    const findUnspentTxOut = UnspentTxOuts.find((uTxO) => uTxO.txOutId === txIn.txOutId && uTxO.txOutIndex === txIn.txOutIndex)
+const getTxInAmount = (txIn, unspentTxOuts) => {
+    const findUnspentTxOut = unspentTxOuts.find((uTxO) => uTxO.txOutId === txIn.txOutId && 
+    uTxO.txOutIndex === txIn.txOutIndex );
 
     return findUnspentTxOut.amount;
 }
 
 const isValidateTxForPool = (transaction) => {
-    // 트랜잭션 풀에 있는 txIns 들과 transaction의 txIns들을 비교해서 같은 것이 있는지 확인 
-    const txPoolIns = _(transactionPool).map((tx) => tx.txIns).flatten().value();
+    // 트랜잭션 풀에 있는 txIns 들과 transaction 에 txIns 들을 비교해서 같은 것이 있는지 확인
+    const txPoolIns = _(transactionPool)
+        .map((tx) => tx.txIns)
+        .flatten()
+        .value(); // 속에 있는걸 겉으로 꺼내왔다
 
     const containTxIn = (txIn) => {
         return _.find(txPoolIns, (txPoolIn) => {
-            return txIn.txOutIndex === txPoolIn.txOutIndex && txIn.txOutId === txPoolIn.txOutId;
+            return txIn.txOutIndex === txPoolIn.txOutIndex &&
+                txIn.txOutId === txPoolIn.txOutId;
         })
     }
 
-    for(const txIn of transaction.txIns) {
-        if(containTxIn(txIn)) {
-            console.log('이미 존재하는 트랜잭션이다!! : ', transaction.id);
+    for (const txIn of transaction.txIns) {
+        if (containTxIn(txIn)) {
+            console.log('이미 존재하는 트랜잭션입니다. : ', transaction.id);
             return false;
         }
-    } 
+    }
+
+    return true;
 }
 
 const updateTransactionPool = () => {
-    /*
-        현재 트랜잭션 풀에 있는 트랜잭션 중에서 
-        사용되지 않은 TxOuts 내용과 일치하지 않는 ( -> 이미 처리가 된 애들?)
-        트랜잭션들을 제거한다 
-    */
-   const removable = [];
-    for(const tx of transactionPool){
-        for(const txIn of tx.txIns) {
-            if(isInTx(txIn)) {
-                
-            } else {
-                removable.push(tx);
+    const removable = [];
+    // 1. 현재 트랜잭션 풀에 있는 트랜잭션 중에
+    // 사용되지 않은 TxOuts내용과 일치하지 않는 트랜잭션들을 제거한다.
+    for (const tx of transactionPool) {
+        for (const txIn of tx.txIns) {
+            if (isInTx(txIn)) {
+
+            }
+            else {
+                removable.push(tx)
                 break;
             }
         }
     }
-
     transactionPool = _.without(transactionPool, ...removable);
 }
 
 const isInTx = (txIn) => {
-    const findTxOut = _(UnspentTxOuts).find((uTxO) => {
-        return uTxO.txOutIndex === txIn.txOutIndex && uTxO.txOutId === txIn.txOutId
-    })
+    const findTxOut = _(unspentTxOuts).find((uTxO) => { uTxO.txOutIndex === txIn.txOutIndex &&
+    uTxO.txOutId === txIn.txOutId });
 
     return findTxOut !== undefined;
 }
 
-export { sendTransaction, getTransationPool, addToTransactionPool, getCoinbaseTransaction, updateTransactionPool }
+// processTransaction(transactions /* Transaction[] */, [] /* UnspentTxOut[] */, 0 /* blockIndex */);
+const processTransaction = (transactions , unspentTxOuts , blockIndex) => {
+    // 1. 예외처리 (트랜잭션 구조를 검증하는 과정)
+    if (isValidateBlockTransaction(transactions , unspentTxOuts , blockIndex)) {
+        console.log('invalid processTransaction!')
+        return null;
+    }
+
+    // 2. 미사용 txouts를 추출하는 과정
+    // 2_1. 블록에 있는 데이터 (처리해야 할 트랜잭션 정보) 중에서 txIns로 소모된 txOuts(UnspentTxOut)를 구성
+    const consumedTxOuts = transactions.map((tx) => tx.txIns) // txIns로 구성된 배열로 변경
+        .reduce((a, b) => a.concat(b), [])
+        .map((txIn) => new UnspentTxOut(txIn.txOutId, txIn.txOutIndex, '', 0));
+
+    // 2_2. 새로 들어온 트랜잭션 정보에서 추출한 UnspentTxOut 생성
+    const newUnspentTxOuts = transactions.map((tx) => {
+        return tx.txOuts.map((txOut) => new UnspentTxOut(tx.id, blockIndex, txOut.address, txOut.amount));
+    })
+    .reduce((a, b) => a.concat(b), []);
+    
+    // 2_3. 기존 UnspentTxOut - 소모된 UnspentTxOut + newUnspentTxOuts 을 추가
+    // 두 1차원 배열의 (txOutId와 txOutIndex 를 비교해서 같은 요소)를 filter 하는 코드를 만들어보자.
+    const resultUnspentTxOuts = (unspentTxOuts.filter((uTxO) => !checkSameElement(consumedTxOuts, uTxO.txOutIndex, uTxO.txOutId))).concat(newUnspentTxOuts);
+
+    unspentTxOuts = resultUnspentTxOuts;
+    return resultUnspentTxOuts;
+}
+
+const checkSameElement = (txOuts, txOutIndex, txOutId) => {
+    return txOuts.find((txOut) => txOut.txOutId === txOutId && txOut.txOutIndex === txOutIndex);
+}
+
+export { getTransactionPool, addToTransactionPool, getCoinbaseTransaction, updateTransactionPool, getUnspentTxOuts, processTransaction  }

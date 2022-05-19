@@ -1,0 +1,25 @@
+transaction 추가 설명
+txIn txOut uTxO 
+    -> uTxO는 공유 안됨 -> 이건 각 노드의 balance니까 
+
+node 들이 연결되어 있다 p2p 연결 
+mining chain-push
+
+mining과 transaction은 완전 별개
+
+transaction 
+    누가 누구한테 얼마를 보낸다 
+    address
+    amount 
+    -> new transaction 
+    -> transactionPool에 담음
+    -> sendTrnasaction (거래는 보낸다는 개념만 있음)
+    -> broadcasting
+    -> 처리는 mining이 발생되었을 때 -> 정확히는 TrPool에 담기고 mining이 발생했을때
+
+/// blocks와 transactionPool의 차이? 
+    broadcasting하고 저장 후의 처리 
+
+
+tx를 생성하고 공유하는 과정에서 중복되는 data가 생성될 가능성이 존재 
+    -> 배제를 위해서 filter 등이 존재
