@@ -1,11 +1,14 @@
 import CryptoJs from "crypto-js";
 import _ from 'lodash';
+import ecdsa from 'elliptic';
+
 import { getPublicKeyFromWallet, getPrivateKeyFromWallet } from './wallet.js';
 import { broadcastingTransactionPool } from './p2pServer.js'
 import { getUnspentTxOuts } from "./block.js";
 
 // 블록당 코인
 const COIN_BASE_AMOUNT = 50;
+const ec = new ecdsa.ec('secp256k1'); 
 
 let transactionPool = [];
 const getTransactionPool = () => {
@@ -59,30 +62,51 @@ class Transaction {
 // transaction id
 const getTransactionId = (transaction) => {
     // txIns에 있는 내용들을 하나의 문자열로 변환
-    // const txInsContent = transaction.txIns.map((txIn) => {
-    //     // map 배열의 각 요소들을 건드릴때 사용
-    //     (txIn.txOutId + txIn.txOutIndex).reduce((a, b) => {     
-    //         // reduce 배열의 각 요소들을 하나의 결과값으로 만들때 사용
-    //         a + b, ''
-    //     })
-    // })
+    const txInsContent = transaction.txIns.map((txIn) => 
+        // map 배열의 각 요소들을 건드릴때 사용
+        (txIn.txOutId + txIn.txOutIndex)).reduce((a, b) =>      
+            // reduce 배열의 각 요소들을 하나의 결과값으로 만들때 사용
+             a + b, ''
+        )
+    
     // txOuts에 있는 내용들을 하나의 문자열로 변환
-    const txOutsContent = transaction.txOuts.map((txOut) => {
-        (txOut.address + txOut.amount)}).reduce((a, b) => {     
-            a + b, ''
-        })
+    const txOutsContent = transaction.txOuts.map((txOut) => 
+        (txOut.address + txOut.amount)).reduce((a, b) =>      
+           a + b, ''
+        )
     // 위의 두 내용을 다 합해서 hash 처리
-    return CryptoJs.SHA256(/* txInsContent +  */txOutsContent).toString();
+    return CryptoJs.SHA256(txInsContent + txOutsContent).toString();
 }
 
 // transaction signature
 const signTxIn = (transaction, txInIndex, privateKey) => {
     // const txIn = transaction.txIns[txInIndex];
+    // TODO : txIn 예외처리
+    /*  
+        서명을 할 때 key 사용 
+        const ec = new ecdsa.ec('secp256k1'); 이 것을 이용해서 서명에 필요한 key 추출
+            -> private key를 기반으로 서명용 key 생성
+            -> 받은 입장에선 받은 public key(보낸사람의 퍼블릭키)를 가지고 검증용 key를 생성 
+            -> 이 key는 서명된거만 확인가능
+            -> 영지식 증명 방법
+    */
+    const key = ec.keyFromPrivate(privateKey,"hex");
+    console.log(key);
 
-    // TODO : 구현 확인 
-    const signature = toHexString(privateKey, transaction.id).toDER();
-    // toDER 인코딩 방식 중에 하나 
+    const signature = toHexString(key.sign(transaction.id).toDER());
+    // toDER 인코딩 방식 중에 하나 pem과 비슷한 인코딩 형식
     return signature;
+}
+
+// 16진수 문자열 변환 내장에 없어서 생성
+const toHexString = (byteArray) => {
+    // byte 값들을 문자열로 치환 
+    return Array.from(byteArray, (byte) => {
+        return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+        // 0xFF 16진수 F하나에 bit 4개 
+        // 0000 0000랑 &연산 한다는 뜻
+        // '0' + 은 값이 작으면 한자리로 나오니까 자릿수 유지용
+    }).join();
 }
 
 // coinbase transaction 
@@ -137,12 +161,17 @@ const createTransaction = (address, amount) => {
     console.log("unsigndeTxIns : " + unsigndeTxIns);
 
     const tx = new Transaction();
-    tx.txIns = unsigndeTxIns;
+    tx.txIns = unsigndeTxIns
     tx.txOuts = createTxOuts(address, amount, leftoverAmout); // 받는 사람 주소
     tx.id = getTransactionId(tx);
     console.log("create : ", tx)
 
     // 서명 
+    tx.txIns = tx.txIns.map((txIn, index) => {
+        txIn.sign = signTxIn(tx, index, getPrivateKeyFromWallet())
+        return txIn;
+    });
+    console.log("sign : ", tx)
 
     return tx;
 }
@@ -208,12 +237,13 @@ const createTxOuts = (address, amount, leftoverAmout) => {
 }
 
 // 올바른 트랜잭션인지 
-const addToTransactionPool = (transaction) => {
-    // if (!isValidateTransaction(transaction, UnspentTxOuts)) {
-    //     throw Error('추가하려는 트랜잭션이 올바르지 않다!! : ', transaction)
-    // }
-    // 지금으론 중복되는지 파악이 안됨 -> txIn이 필요
-    console.log(transaction)
+const addToTransactionPool = (transaction) => { 
+    if (!isValidateTransaction(transaction, getUnspentTxOuts())) {
+        throw Error('추가하려는 트랜잭션이 올바르지 않다!! : ', transaction)
+    }
+    //지금으론 중복되는지 파악이 안됨 -> txIn이 필요
+    console.log(transaction) 
+
     if(!isValidateTxForPool(transaction)) {
         throw Error('추가하려는 트랜잭션이 이미 풀에 있습니다!! : ', transaction)
     }
@@ -222,20 +252,41 @@ const addToTransactionPool = (transaction) => {
 }
 
 const isValidateTransaction = (transaction, UnspentTxOuts) => {
-    if(getTransactionId(transaction) === transaction.id) {
-        console.log('invalid transaction id : ', transaction.id);
+    // 트랜잭션의 public key -> address
+    // txOutId, txOutIndex가 같은 미사용 txOuts를 찾는다 
+    const isValidateIns = transaction.txIns
+        .map((txIn) => isValidateTxIn(txIn, UnspentTxOuts, transaction))
+        .reduce((a, b) => a && b, true ); // 전체 배열에 하나라도 false면 false가 되는 코드
+
+    if(!isValidateIns) {
+        console.log('잘못된 txIn이 포함된 트랜잭션 발견')
         return false;
     }
 
-    const totalTxInValues = transaction.txIns.map((txIn) => getTxInAmount(txIn, UnspentTxOuts)).reduce((a, b) => (a + b), 0);
+    return true;
+}
 
-    const totalTxOutValues = transaction.txOuts.map((txOut) => txOut.amount).reduce((a, b) => (a + b), 0);
+const isValidateTxIn = (txIn, UnspentTxOuts, transaction) => {
+    // 현재 참조 중인 uTxO를 찾는다 
+    console.log("uTxOs : ", UnspentTxOuts);
+    console.log("txIn : ", txIn);
+    const referenceUTxO = UnspentTxOuts.find((uTxO) => uTxO.txOutId === txIn.txOutId && uTxO.txOutIndex === txIn.txOutIndex);
+    // find는 조건에 맞는거 하나 return
 
-    if(totalTxInValues !== totalTxOutValues) {
-        console.log('totalTxInValues !== totalTxOutValues : ', transaction.id);
+    if(referenceUTxO === undefined) {
+        console.log("참조 중인 uTxO 발견 실패");
         return false;
     }
 
+    const address = referenceUTxO.address;
+    const key = ec.keyFromPublic(address, "hex");
+    const isValidateSign = key.verify(transaction.id, txIn.sign);
+
+    if(!isValidateSign) {
+        console.log("잘못된 서명이 들어간 txIn");
+        return false;
+    }
+    
     return true;
 }
 
@@ -251,6 +302,7 @@ const isValidateTxForPool = (transaction) => {
 
     const containTxIn = (txIn) => {
         return _.find(txPoolIns, (txPoolIn) => {
+            console.log("1 : " + txIn.txOutIndex === txPoolIn.txOutIndex && txIn.txOutId === txPoolIn.txOutId)
             return txIn.txOutIndex === txPoolIn.txOutIndex && txIn.txOutId === txPoolIn.txOutId;
         })
     }
