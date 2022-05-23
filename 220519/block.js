@@ -103,7 +103,7 @@ const addBlock = (newBlock, previousBlock) => {
             
 
         // 트랜잭션 풀 업데이트
-        updateTransactPool(unspentTxOuts);
+        updateTransactionPool(unspentTxOuts);
 
         return true;        
     }
@@ -121,7 +121,7 @@ const addBlock = (newBlock, previousBlock) => {
 
 const isValidBlockStructure = (newBlock) => {
     if (typeof (newBlock.index) === 'number' 
-     && typeof (newBlock.data) === 'string' 
+     && typeof (newBlock.data) === 'object' 
      && typeof (newBlock.timestamp) === 'number' 
      && typeof (newBlock.hash) === 'string' 
      && typeof (newBlock.previousHash) === 'string' 
@@ -197,29 +197,27 @@ const hexToBinary = (hex) => {
 
     return binary;
 } 
+// 올바른 블록 데이터를 받았나 판별
 const isValidBlockchain = (receiveBlockchain) => {
-    // 같은 제네시스 블록인가 
-    // JSON.stringify(receiveBlockchain[0]) === JSON.stringify(getBlocks()[0])
-    if (JSON.stringify(receiveBlockchain[0]) !== JSON.stringify(getBlocks()[0])) {
-         console.log('같은 제네시스 블록이 아님');
-        console.log(receiveBlockchain[0]);
-        console.log('-------------------------')
-        console.log(getBlocks()[0]);
-        return false;
-    }      
-    
-    // 체인내의 모든 블록을 확인
-    for(let i = 1; i < receiveBlockchain.length; i++)
-    {
-        if(isValidNewBlock(receiveBlockchain[i], receiveBlockchain[i - 1]) == false)
-        {
-            console.log(i - 1, '번 블록과 ', i, '번 블록이 문제');
-            console.log(receiveBlockchain[i - 1]);
-            console.log(receiveBlockchain[i]);
-            return false;
-        }      
+    // 같은 제네시스 블록인가? 
+    console.log("test1 ", receiveBlockchain[0]);
+    console.log("test2 ", getBlocks()[0]);
+    console.log("test3 ", JSON.stringify(receiveBlockchain[0]) ==  JSON.stringify(getBlocks()[0]));
+
+    if(JSON.stringify(receiveBlockchain[0]) !==  JSON.stringify(getBlocks()[0])) {
+        console.log("제네시스 블록이 다름");
+        return false
+    };
+
+    // 체인 내의 모든 블록을 확인
+    for(let i = 1; i < receiveBlockchain.length; i++) {
+        // console.log(receiveBlockchain);
+        if(!isValidNewBlock(receiveBlockchain[i], receiveBlockchain[i-1])) {
+            console.log("체인 내의 블록 체크 중에 오류");
+            return false
+        };
     }
-    console.log('블록체인 확인 완료')
+
     return true;
 }
 
@@ -239,32 +237,25 @@ const findNonce = (index, data, timestamp, previousHash, difficulty) => {
 }
 
 
-// 통채로 교체가 필요가 있을때
+// 블록 교체 함수 통째로 받았을때
+// type error 해결을 위해서 block.js로 이동시킴
 const replaceBlockchain = (receiveBlockchain) => {
-    console.log(receiveBlockchain);
-    if (isValidBlockchain(receiveBlockchain))
-    {
-        //let blocks = getblock();
-        if ((receiveBlockchain.length > blocks.length) || 
-            receiveBlockchain.length == blocks.length && random.boolean())
-        {
-            console.log('받은 블록체인의 길이가 길거나 같아서 바꿈');
-            blocks = receiveBlockchain;            
-            // for(let i = 0; i < newBlocks.length - 1; i++ ){                
-            //     blocks[i] = newBlocks[i];
-            // }
-            // 받은 블록체인이 현재 블록체인보다 더 길면 (바꿈)
+    // receiveBlockchain = JSON.parse(receiveBlockchain);
+    // JSON.parse시 null 주의 (null exception이 발생해서 추가 처리 필요)
+    if(isValidBlockchain(receiveBlockchain)) {
+        // let blocks = getBlocks();
+        if((receiveBlockchain.length > getBlocks().length || (receiveBlockchain.length == getBlocks().length && random.boolean()))) {
+            console.log("받은 블록체인의 길이가 길거나 같아서 교체한다")
+            blocks = receiveBlockchain; // type error 걸림 export 받아온거라 const 취급인듯
 
             // 사용되지 않은 txOuts 셋팅
-            const latestBlock = getLatestBlock();
-            processTransaction(latestBlock.data, getUnspentTxOuts(), latestBlock.index);
-            
             // 트랜잭션 풀 업데이트
             updateTransactionPool(unspentTxOuts);
+        } else {
+            console.log("받은 블록체인의 길이가 짧다")
         }
-    }
-    else{
-        console.log('받은 블록체인에 문제가 있음');
+    } else {
+        console.log("받은 블록체인에 문제가 있음");
     }
 }
 

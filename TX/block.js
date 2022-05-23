@@ -197,29 +197,27 @@ const hexToBinary = (hex) => {
 
     return binary;
 } 
+// 올바른 블록 데이터를 받았나 판별
 const isValidBlockchain = (receiveBlockchain) => {
-    // 같은 제네시스 블록인가 
-    // JSON.stringify(receiveBlockchain[0]) === JSON.stringify(getBlocks()[0])
-    if (JSON.stringify(receiveBlockchain[0]) !== JSON.stringify(getBlocks()[0])) {
-         console.log('같은 제네시스 블록이 아님');
-        console.log(receiveBlockchain[0]);
-        console.log('-------------------------')
-        console.log(getBlocks()[0]);
-        return false;
-    }      
-    
-    // 체인내의 모든 블록을 확인
-    for(let i = 1; i < receiveBlockchain.length; i++)
-    {
-        if(isValidNewBlock(receiveBlockchain[i], receiveBlockchain[i - 1]) == false)
-        {
-            console.log(i - 1, '번 블록과 ', i, '번 블록이 문제');
-            console.log(receiveBlockchain[i - 1]);
-            console.log(receiveBlockchain[i]);
-            return false;
-        }      
+    // 같은 제네시스 블록인가? 
+    console.log("test1 ", receiveBlockchain[0]);
+    console.log("test2 ", getBlocks()[0]);
+    console.log("test3 ", JSON.stringify(receiveBlockchain[0]) ==  JSON.stringify(getBlocks()[0]));
+
+    if(JSON.stringify(receiveBlockchain[0]) !==  JSON.stringify(getBlocks()[0])) {
+        console.log("제네시스 블록이 다름");
+        return false
+    };
+
+    // 체인 내의 모든 블록을 확인
+    for(let i = 1; i < receiveBlockchain.length; i++) {
+        // console.log(receiveBlockchain);
+        if(!isValidNewBlock(receiveBlockchain[i], receiveBlockchain[i-1])) {
+            console.log("체인 내의 블록 체크 중에 오류");
+            return false
+        };
     }
-    console.log('블록체인 확인 완료')
+
     return true;
 }
 
