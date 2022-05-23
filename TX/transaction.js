@@ -316,7 +316,7 @@ const isValidateTxForPool = (transaction) => {
     return true;
 }
 
-const updateTransactionPool = () => {
+const updateTransactionPool = (unspentTxOuts) => {
     /*
         현재 트랜잭션 풀에 있는 트랜잭션 중에서 
         사용되지 않은 TxOuts 내용과 일치하지 않는 ( -> 이미 처리가 된 애들?)
@@ -325,7 +325,7 @@ const updateTransactionPool = () => {
    const removable = [];
     for(const tx of transactionPool){
         for(const txIn of tx.txIns) {
-            if(isInTx(txIn)) {
+            if(isInTx(txIn, unspentTxOuts)) {
                 
             } else {
                 removable.push(tx);
@@ -337,8 +337,8 @@ const updateTransactionPool = () => {
     transactionPool = _.without(transactionPool, ...removable);
 }
 
-const isInTx = (txIn) => {
-    const findTxOut = _(getUnspentTxOuts()).find((uTxO) => {
+const isInTx = (txIn, unspentTxOuts) => {
+    const findTxOut = _(unspentTxOuts).find((uTxO) => {
         return uTxO.txOutIndex === txIn.txOutIndex && uTxO.txOutId === txIn.txOutId
     })
 
