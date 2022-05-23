@@ -27,12 +27,9 @@ const initHttpServer = (myHttpPoryt) => {
     //     const data = req.body.data
     //     res.send(createBlock(data));        
     // })
-
-    app.post('/createblock', (req, res) => {
-        res.send(createBlock(req.body.data));        
-    })
     
     app.post('/mineBlock', (req, res) => {
+        // res.send(mineBlock(req.body.data));
         res.send(mineBlock(req.body.data));
     })
 
@@ -81,7 +78,7 @@ const initHttpServer = (myHttpPoryt) => {
         res.send(getTransactionPool());
     })
 
-    app.get('/upspentTxOuts', (req, res) => {
+    app.get('/unspentTxOuts', (req, res) => {
         res.send(getUnspentTxOuts());
     })
 

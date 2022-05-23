@@ -103,7 +103,7 @@ const addBlock = (newBlock, previousBlock) => {
             
 
         // 트랜잭션 풀 업데이트
-        updateTransactPool(unspentTxOuts);
+        updateTransactionPool(unspentTxOuts);
 
         return true;        
     }
@@ -121,7 +121,7 @@ const addBlock = (newBlock, previousBlock) => {
 
 const isValidBlockStructure = (newBlock) => {
     if (typeof (newBlock.index) === 'number' 
-     && typeof (newBlock.data) === 'string' 
+     && typeof (newBlock.data) === 'object' 
      && typeof (newBlock.timestamp) === 'number' 
      && typeof (newBlock.hash) === 'string' 
      && typeof (newBlock.previousHash) === 'string' 

@@ -207,8 +207,14 @@ const broadcasting = (message) => {
 }
 
 // 내가 새로운 블록을 채굴했을 때 연결된 노드들에게 전파
-const mineBlock = (blockData) => {
-    const newBlock = createBlock(blockData);
+// const mineBlock = (blockData) => {
+//     const newBlock = createBlock(blockData);
+//     if(addBlock(newBlock, getLatestBlock())) {
+//         broadcasting(responseLatestMessage());
+//     }
+// }
+const mineBlock = () => {
+    const newBlock = createBlock(getTransactionPool());
     if(addBlock(newBlock, getLatestBlock())) {
         broadcasting(responseLatestMessage());
     }

@@ -10,7 +10,7 @@
 
 import CryptoJS from 'crypto-js';
 import random from 'random';
-import { getCoinbaseTransaction, getTransationPool, updateTransactionPool } from "./transaction.js";
+import { getCoinbaseTransaction, getTransactionPool, updateTransactionPool } from "./transaction.js";
 import { getPublicKeyFromWallet } from "./wallet.js";
 
 
@@ -75,7 +75,7 @@ const createNextBlock = () => {
     const coinbaseTx = getCoinbaseTransaction(getPublicKeyFromWallet(), getLatestBlock().index + 1);
 
     // 2. 생성된 코인베이스 트랜잭션 뒤에 현재 보유 중인 트랜잭션 풀의 내용을 포함 (마이닝 된 블록의 데이터)
-    const blockData = [coinbaseTx].concat(getTransationPool);
+    const blockData = [coinbaseTx].concat(getTransactionPool);
     return createBlock(blockData);
 }
 

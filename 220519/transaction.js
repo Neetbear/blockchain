@@ -338,7 +338,7 @@ const updateTransactionPool = () => {
 }
 
 const isInTx = (txIn) => {
-    const findTxOut = _(unspentTxOuts).find((uTxO) => {
+    const findTxOut = _(getUnspentTxOuts()).find((uTxO) => {
         return uTxO.txOutIndex === txIn.txOutIndex && uTxO.txOutId === txIn.txOutId
     })
 

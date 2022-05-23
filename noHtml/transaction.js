@@ -300,7 +300,7 @@ const updateTransactionPool = () => {
 }
 
 const isInTx = (txIn) => {
-    const findTxOut = _(unspentTxOuts).find((uTxO) => { uTxO.txOutIndex === txIn.txOutIndex &&
+    const findTxOut = _(getUnspentTxOuts()).find((uTxO) => { uTxO.txOutIndex === txIn.txOutIndex &&
     uTxO.txOutId === txIn.txOutId });
 
     return findTxOut !== undefined;
