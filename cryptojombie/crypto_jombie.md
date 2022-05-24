@@ -261,3 +261,128 @@ function sayHiToVitalik(string _name) public returns (string) {
   return "Hi!";
 }
 ```
+
+참고 :: 솔리디티에서 값을 비교할 때 어떤 항이 먼저 오느냐는 중요하지 않다. 어떤 순서든 동일하다. 
+
+## 상속 
+```
+contract Doge {
+  function catchphrase() public returns (string) {
+    return "So Wow CryptoDoge";
+  }
+}
+
+contract BabyDoge is Doge {
+  function anotherCatchphrase() public returns (string) {
+    return "Such Moon BabyDoge";
+  }
+}
+```
+상속 개념은 "고양이는 동물이다"의 경우처럼 부분집합 클래스가 있을 때 논리적 상속을 위해 활용한다.
+하지만 동일한 로직을 다수의 클래스로 분할해서 단순히 코드를 정리할 때도 활용할 수 있다.
+
+## Import
+여러 파일로 나누어 정리하면 관리
+다수의 파일이 있고 어떤 파일을 다른 파일로 불러오고 싶을 때, 솔리디티는 import라는 키워드를 이용
+```
+import "./someothercontract.sol";
+// ./ : 이 컨트랙트와 동일한 폴더에 있음을 의미한다
+contract newContract is SomeOtherContract {
+
+}
+```
+
+## Storage vs Memory
+Storage는 블록체인 상에 영구적으로 저장되는 변수
+Memory는 임시적으로 저장되는 변수 -> 컨트랙트 함수에 대한 외부 호출들이 일어나는 사이에 지워진다
+
+상태 변수(함수 외부에 선언된 변수)는 초기 설정상 storage로 선언되어 블록체인에 영구적으로 저장되는 반면, 
+함수 내에 선언된 변수는 memory로 자동 선언되어서 함수 호출이 종료되면 사라진다.
+
+구조체와 배열을 처리할때는 이 키워드들을 사용해야 한다 
+```
+contract SandwichFactory {
+  struct Sandwich {
+    string name;
+    string status;
+  }
+
+  Sandwich[] sandwiches;
+
+  function eatSandwich(uint _index) public {
+    // Sandwich mySandwich = sandwiches[_index];
+
+    // ^ 꽤 간단해 보이나, 솔리디티는 여기서 
+    // `storage`나 `memory`를 명시적으로 선언해야 한다는 경고 메시지를 발생한다. 
+    // 그러므로 `storage` 키워드를 활용하여 다음과 같이 선언해야 한다:
+    Sandwich storage mySandwich = sandwiches[_index];
+    // ...이 경우, `mySandwich`는 저장된 `sandwiches[_index]`를 가리키는 포인터이다.
+    // 그리고 
+    mySandwich.status = "Eaten!";
+    // ...이 코드는 블록체인 상에서 `sandwiches[_index]`을 영구적으로 변경한다. 
+
+    // 단순히 복사를 하고자 한다면 `memory`를 이용하면 된다: 
+    Sandwich memory anotherSandwich = sandwiches[_index + 1];
+    // ...이 경우, `anotherSandwich`는 단순히 메모리에 데이터를 복사하는 것이 된다. 
+    // 그리고 
+    anotherSandwich.status = "Eaten!";
+    // ...이 코드는 임시 변수인 `anotherSandwich`를 변경하는 것으로 
+    // `sandwiches[_index + 1]`에는 아무런 영향을 끼치지 않는다. 그러나 다음과 같이 코드를 작성할 수 있다: 
+    sandwiches[_index + 1] = anotherSandwich;
+    // ...이는 임시 변경한 내용을 블록체인 저장소에 저장하고자 하는 경우이다.
+  }
+}
+```
+
+## 함수 접근 제어자
+```
+function feedAndMultiply(uint _zombieId, uint _targetDna) public {
+  require(msg.sender == zombieToOwner[_zombieId]);
+  Zombie storage myZombie = zombies[_zombieId];
+  _targetDna = _targetDna % dnaModulus;
+  uint newDna = (myZombie.dna + _targetDna) / 2;
+  _createZombie("NoName", newDna);
+}
+```
+위의 코드 컴파일시 컴파일러가 에러 메시지를 출력한다
+_createZombie 함수는 ZombieFactory 컨트랙트 내의 private 함수인데 ZombieFeeding 컨트랙트 내에서 _createZombie 함수를 호출하여서 오류가 발생한다
+ZombieFactory 컨트랙트를 상속하는 어떤 컨트랙트도 이 함수에 접근할 수 없다
+
+### Internal과 External
+internal은 함수가 정의된 컨트랙트를 상속하는 컨트랙트에서도 접근이 가능하다 점을 제외하면 private과 동일
+external은 함수가 컨트랙트 바깥에서만 호출될 수 있고 컨트랙트 내의 다른 함수에 의해 호출될 수 없다는 점을 제외하면 public과 동일
+```
+contract Sandwich {
+  uint private sandwichesEaten = 0;
+
+  function eat() internal {
+    sandwichesEaten++;
+  }
+}
+
+contract BLT is Sandwich {
+  uint private baconSandwichesEaten = 0;
+
+  function eatWithBacon() public returns (string) {
+    baconSandwichesEaten++;
+    // eat 함수가 internal로 선언되었기 때문에 여기서 호출이 가능하다 
+    eat();
+  }
+}
+```
+
+## 다른 컨트랙트와 상호작용하기
+블록체인 상에 있으면서 우리가 소유하지 않은 컨트랙트와 우리 컨트랙트가 상호작용을 하려면 우선 인터페이스를 정의해야 한다
+```
+contract LuckyNumber {
+  mapping(address => uint) numbers;
+
+  function setNum(uint _num) public {
+    numbers[msg.sender] = _num;
+  }
+
+  function getNum(address _myAddress) public view returns (uint) {
+    return numbers[_myAddress];
+  }
+}
+```
