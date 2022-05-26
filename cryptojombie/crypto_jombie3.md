@@ -183,3 +183,61 @@ function driveCar(uint _userId) public olderThan(16, _userId) {
   // 필요한 함수 내용들
 }
 ```
+
+## 'View' 함수를 사용해 가스 절약하기
+### View 함수는 가스를 소모하지 않네
+DApp의 가스 사용을 최적화하는 비결은 가능한 모든 곳에 읽기 전용의 external view 함수를 쓰는 것
+
+단, 만약 view 함수가 동일 컨트랙트 내에 있는, view 함수가 아닌 다른 함수에서 내부적으로 호출될 경우, 여전히 가스를 소모할 것
+이것은 다른 함수가 이더리움에 트랜잭션을 생성하고, 이는 모든 개별 노드에서 검증되어야 하기 때문
+view 함수는 외부에서 호출됐을 때에만 무료
+### Storage는 비싸다
+어떤 배열에서 내용을 빠르게 찾기 위해, 단순히 변수에 저장하는 것 대신 함수가 호출될 때마다 배열을 memory에 다시 만드는 것이 더 저렴하다
+
+## 메모리에 배열 선언하기
+Storage에 아무것도 쓰지 않고도 함수 안에 새로운 배열을 만들려면 배열에 memory 키워드를 쓰면 된다
+이 배열은 함수가 끝날 때까지만 존재할 것
+storage의 배열을 직접 업데이트하는 것보다 가스 소모 측면에서 훨씬 저렴
+```
+function getArray() external pure returns(uint[]) {
+  // 메모리에 길이 3의 새로운 배열을 생성한다.
+  uint[] memory values = new uint[](3);
+  // 여기에 특정한 값들을 넣는다.
+  values.push(1);
+  values.push(2);
+  values.push(3);
+  // 해당 배열을 반환한다.
+  return values;
+}
+```
+
+## For 반복문
+함수 내에서 배열을 다룰 때, 그냥 storage에 해당 배열을 저장하는 것이 아니라 for 반복문을 사용해서 구성해야 할 때가 있을 것
+```
+mapping (address => uint[]) public ownerToZombies;
+function getZombiesByOwner(address _owner) external view returns (uint[]) {
+  return ownerToZombies[_owner];
+}
+```
+문제점
+배열이라서 좀비가 지워진 구멍을 메우기 위해 기존 소유자의 배열에서 모든 좀비를 한 칸씩 움직인다
+  -> 가스비 소모가 크다
+### for 반복문 사용하기
+```
+function getEvens() pure external returns(uint[]) {
+  uint[] memory evens = new uint[](5);
+  // 새로운 배열의 인덱스를 추적하는 변수
+  uint counter = 0;
+  // for 반복문에서 1부터 10까지 반복함
+  for (uint i = 1; i <= 10; i++) {
+    // `i`가 짝수라면...
+    if (i % 2 == 0) {
+      // 배열에 i를 추가함
+      evens[counter] = i;
+      // `evens`의 다음 빈 인덱스 값으로 counter를 증가시킴
+      counter++;
+    }
+  }
+  return evens;
+}
+```

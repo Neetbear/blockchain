@@ -114,6 +114,8 @@ function _multiply(uint a, uint b) private pure returns (uint) {
 ```
 이 함수는 앱에서 읽는 것도 하지 않고, 다만 반환값이 함수에 전달된 인자값에 따라서 달라진다
 이런 경우에 함수를 pure로 선언한다
+
+왜 pure? pure를 사용한 function은 순수하게 함수 내부에 선언된 변수들 만으로 구성되어 있기 때문
  
 참고 :: 솔리디티 컴파일러는 어떤 제어자를 써야 하는지 경고 메시지를 통해 알려준다
 
