@@ -64,3 +64,5 @@ window.addEventListener('load', function() {
 ```
 
 ## 컨트랙트와 대화하기
+### 컨트랙트 주소
+스마트 컨트랙트를 모두 작성한 후, 컴파일한 후 이더리움에 배포할 것
