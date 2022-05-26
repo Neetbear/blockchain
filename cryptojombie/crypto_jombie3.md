@@ -161,3 +161,25 @@ function _doStuff(Zombie storage _zombie) internal {
   // _zombie로 할 수 있는 것들을 처리
 }
 ```
+
+## Public 함수 & 보안
+public과 external 함수 보안 문제(사용자들은 이 함수를 직접적으로 호출 가능) -> internal 함수 사용
+
+## 함수 제어자의 또 다른 특징
+### 인수를 가지는 함수 제어자
+```
+// 사용자의 나이를 저장하기 위한 매핑
+mapping (uint => uint) public age;
+
+// 사용자가 특정 나이 이상인지 확인하는 제어자
+modifier olderThan(uint _age, uint _userId) {
+  require (age[_userId] >= _age);
+  _;
+}
+
+// 차를 운전하기 위햐서는 16살 이상이어야 하네(적어도 미국에서는).
+// `olderThan` 제어자를 인수와 함께 호출하려면 이렇게 하면 되네:
+function driveCar(uint _userId) public olderThan(16, _userId) {
+  // 필요한 함수 내용들
+}
+```
