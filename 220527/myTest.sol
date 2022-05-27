@@ -16,7 +16,7 @@ contract MyTestContract {
         // 송금
         require(msg.sender.balance >= _amount);
         // msg.sender.transfer(_amount);
-        bool sent = _to.send(_amount);
+        bool sent = payable(_to).send(_amount);
         require(sent, "transfer failed");
         emit Transfer(msg.sender, _to, _amount);
     }
