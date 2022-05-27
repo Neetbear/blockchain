@@ -12,10 +12,12 @@ contract MyTestContract {
         return msg.sender.balance;
     }
 
-    function transferBalance(address  payable _to, uint256 _amount) public payable {
+    function transferBalance(address _to, uint256 _amount) public {
         // 송금
         require(msg.sender.balance >= _amount);
-        _to.transfer(_amount * (10 ** 18));
+        bool sent = payable(msg.sender).send(_amount);
+        payable(_to).transfer(_amount);
+        require(sent, "transfer failed");
         emit Transfer(msg.sender, _to, _amount);
     }
 }

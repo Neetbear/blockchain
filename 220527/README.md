@@ -52,3 +52,5 @@ F1 누르고 solidity:compile contract -> bin폴더 생기면 성공
 testTransferContractInstance.at(0x6D3163983b31B01a2dc8D23a557F223fa491087D).myBalanceOf()
 address : 0x6d3163983b31b01a2dc8d23a557f223fa491087d
 transactionHash : 0x568c5c6d10a763625112946e921ea633fbdf47f128db868793fe2ad8fd6aa25b
+
+https://medium.com/coinmonks/solidity-transfer-vs-send-vs-call-function-64c92cfc878a
