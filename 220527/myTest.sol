@@ -15,8 +15,8 @@ contract MyTestContract {
     function transferBalance(address _to, uint256 _amount) public {
         // 송금
         require(msg.sender.balance >= _amount);
-        bool sent = payable(msg.sender).send(_amount);
-        payable(_to).transfer(_amount);
+        // msg.sender.transfer(_amount);
+        bool sent = _to.send(_amount);
         require(sent, "transfer failed");
         emit Transfer(msg.sender, _to, _amount);
     }
