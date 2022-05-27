@@ -7,3 +7,9 @@ interface -> smart phone을 쓸때 전자회로가 어떻게 돌아가는지 몰
 기본 데이터형 제외하면 대다수가 참조형
 
 web3.js(DApp의 자바스크립트 프론트엔드)
+
+msg.data(bytes) - call data
+msg.disc(address payable) - 메시지를 보내는 주소
+msg.sig (bytes4) - 타깃 함수시그니처
+msg.value (uint) - 전송된 wei의 양
+tx.origin - 트랜잭션의 발신자
