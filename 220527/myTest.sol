@@ -12,6 +12,11 @@ contract MyTestContract {
         return msg.sender.balance;
     }
 
+    function getBalance() public view returns (uint) {
+        address contractAddress = address(this);
+        return contractAddress.balance;
+    }
+
     function transferBalance(address payable _to) public payable {
         // 송금
         require(msg.sender.balance >= msg.value);
@@ -23,10 +28,14 @@ contract MyTestContract {
 
     function transferBalance2(address payable _to, uint _amount) public payable {
         // 송금
-        require(msg.sender.balance >= _amount);
+        require(msg.sender.balance >= msg.value);
+        require(msg.value == _amount);
         _to.transfer(_amount);
+        payable(msg.sender).transfer(msg.value - _amount);
         // bool sent = payable(_to).send(_amount);
         // require(sent, "transfer failed");
+        // (bool sent, ) = _to.call{value: msg.value , gas:1000}("");
+        // require(sent, "Failed to send Ether");
         emit Transfer(msg.sender, _to, _amount);
     }
 }

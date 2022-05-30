@@ -54,3 +54,16 @@ address : 0x6d3163983b31b01a2dc8d23a557f223fa491087d
 transactionHash : 0x568c5c6d10a763625112946e921ea633fbdf47f128db868793fe2ad8fd6aa25b
 
 https://medium.com/coinmonks/solidity-transfer-vs-send-vs-call-function-64c92cfc878a
+
+#### trasaction msg.value 
+https://cryptozombies.io/ko/lesson/4/chapter/1
+
+address.function{ value: amount }(arg1, arg2, arg3)
+
+#### 에러 처리 assert, revert, require
+assert : gas를 다 소비한후, 특정한 조건에 부합하지 않으면 에러를 발생시킨다.
+revert: 조건없이 에러를 발생시키고, gas를 환불 시켜준다. 
+require: 특정한 조건에 부합하지 않으면 에러를 발생시키고, gas를 환불 시켜준다.
+
+
+Access to XMLHttpRequest at 'http://localhost:8000/cats' from origin 'http://127.0.0.1:3000' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'. The credentials mode of requests initiated by the XMLHttpRequest is controlled by the withCredentials attribute.
