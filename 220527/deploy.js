@@ -14,4 +14,3 @@ let testTransferContractInstance = testTransferContract.new({
         console.log('Contract mined!!! address : ' + contract.address + ' transaction hash : ' + contract.transactionHash);
     }
 });
-
